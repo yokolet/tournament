@@ -1,13 +1,15 @@
 #!/usr/bin/env python
-# 
+#
 # tournament.py -- implementation of a Swiss-system tournament
 #
 
 import psycopg2
 
+
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
     return psycopg2.connect("dbname=tournament")
+
 
 def execute_query(query, args=None, result=False):
     """Utility function to execute a query.
@@ -23,19 +25,22 @@ def execute_query(query, args=None, result=False):
         cursor.execute(query)
     values = None
     if result:
-       values  = cursor.fetchall()
+        values = cursor.fetchall()
     cursor.close()
     return values
+
 
 def deleteMatches():
     """Remove all the match records from the database."""
     query = "delete from matches; commit;"
     execute_query(query)
 
+
 def deletePlayers():
     """Remove all the player records from the database."""
     query = "delete from players; commit;"
     execute_query(query)
+
 
 def countPlayers():
     """Returns the number of players currently registered."""
@@ -44,23 +49,25 @@ def countPlayers():
     count = values[0][0]
     return count
 
+
 def registerPlayer(name):
     """Adds a player to the tournament database.
-  
+
     The database assigns a unique serial id number for the player.  (This
     should be handled by your SQL database schema, not in your Python code.)
-  
+
     Args:
       name: the player's full name (need not be unique).
     """
-    query="insert into players(name) values (%s); commit;"
+    query = "insert into players(name) values (%s); commit;"
     execute_query(query, (name,))
+
 
 def playerStandings():
     """Returns a list of the players and their win records, sorted by wins.
 
-    The first entry in the list should be the player in first place, or a player
-    tied for first place if there is currently a tie.
+    The first entry in the list should be the player in first place, or a
+    player tied for first place if there is currently a tie.
 
     Returns:
       A list of tuples, each of which contains (id, name, wins, matches):
@@ -69,11 +76,12 @@ def playerStandings():
         wins: the number of matches the player has won
         matches: the number of matches the player has played
     """
-    query="""select p.id, p.name,
-              (select count(*) from matches where matches.winner = p.id) as wins,
-              (select count(*) from matches where matches.loser = p.id or matches.winner = p.id) as matches
-              from players as p
-              order by wins desc;"""
+    query = """select p.id, p.name,
+      (select count(*) from matches where matches.winner = p.id) as wins,
+      (select count(*) from matches where matches.loser = p.id
+                                          or matches.winner = p.id) as matches
+    from players as p
+    order by wins desc;"""
     values = execute_query(query, result=True)
     return values
 
@@ -85,17 +93,18 @@ def reportMatch(winner, loser):
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
-    query="insert into matches (winner, loser) values (%s, %s); commit;"
+    query = "insert into matches (winner, loser) values (%s, %s); commit;"
     execute_query(query, args=(winner, loser))
- 
+
+
 def swissPairings():
     """Returns a list of pairs of players for the next round of a match.
-  
+
     Assuming that there are an even number of players registered, each player
     appears exactly once in the pairings.  Each player is paired with another
     player with an equal or nearly-equal win record, that is, a player adjacent
     to him or her in the standings.
-  
+
     Returns:
       A list of tuples, each of which contains (id1, name1, id2, name2)
         id1: the first player's unique id
@@ -105,7 +114,7 @@ def swissPairings():
     """
     standings = playerStandings()
     pairs = []
-    idx = 0;
+    idx = 0
     l = len(standings)
     while idx < l:
         player1 = standings[idx]
@@ -115,4 +124,4 @@ def swissPairings():
             #  in each standing, index 0 is an id, and index 1 is a name
             pairs.append((player1[0], player1[1], player2[0], player2[1]))
             idx += 1
-    return pairs        
+    return pairs
